@@ -43,7 +43,7 @@ public abstract class GeneratorBase {
 
   private int myOffset;
   private PrintWriter myOut;
-  private NameShortener myShortener;
+  protected NameShortener myShortener;
 
   protected final GenOptions G;
 
@@ -146,6 +146,11 @@ public abstract class GeneratorBase {
     return packageName;
   }
 
+  /**
+   * If the classHeader is a file path, loads the file content and returns it.
+   * If it's a string representing a comment, returns it as is.
+   * Otherwise, wraps the string in a comment.
+   */
   private String getStringOrFile(String classHeader) {
     try {
       File file = new File(mySourcePath, classHeader);

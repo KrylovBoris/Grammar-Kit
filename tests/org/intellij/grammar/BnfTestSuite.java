@@ -31,6 +31,7 @@ public class BnfTestSuite extends TestCase {
       testSuite.addTestSuite(FleetBnfGeneratorTest.class);
       testSuite.addTestSuite(ExpressionParserTest.class);
       testSuite.addTestSuite(BnfLivePreviewParserTest.class);
+      testSuite.addTestSuite(KotlinBnfGeneratorTest.class);
       return testSuite;
     }
   }
