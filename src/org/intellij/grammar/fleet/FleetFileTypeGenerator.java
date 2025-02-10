@@ -4,6 +4,7 @@
 
 package org.intellij.grammar.fleet;
 
+import com.intellij.openapi.util.text.StringUtil;
 import org.intellij.grammar.generator.BnfConstants;
 import org.intellij.grammar.generator.GeneratorBase;
 import org.intellij.grammar.psi.BnfFile;
@@ -11,6 +12,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.*;
+
+import static org.intellij.grammar.fleet.FleetConstants.FLEET_NAMESPACE;
+import static org.intellij.grammar.fleet.FleetConstants.FLEET_NAMESPACE_PREFIX;
 
 public class FleetFileTypeGenerator extends GeneratorBase {
 
@@ -25,11 +29,11 @@ public class FleetFileTypeGenerator extends GeneratorBase {
                                 String classFileTypeName,
                                 String debugFileTypeName,
                                 String languageClass) {
-    super(psiFile, sourcePath, outputPath, packagePrefix);
-    myFileTypeClassName = (!classFileTypeName.startsWith(FleetConstants.FLEET_NAMESPACE_PREFIX)
-                           ? FleetConstants.FLEET_NAMESPACE_PREFIX
+    super(psiFile, sourcePath, outputPath, packagePrefix, "java");
+    myFileTypeClassName = (!classFileTypeName.startsWith(FLEET_NAMESPACE_PREFIX)
+                           ? FLEET_NAMESPACE_PREFIX
                            : "") + classFileTypeName;
-    myLanguageClass = (!languageClass.startsWith(FleetConstants.FLEET_NAMESPACE_PREFIX) ? FleetConstants.FLEET_NAMESPACE_PREFIX : "") +
+    myLanguageClass = (!languageClass.startsWith(FLEET_NAMESPACE_PREFIX) ? FLEET_NAMESPACE_PREFIX : "") +
                       languageClass;
     myFileTypeDebugName = debugFileTypeName;
   }
@@ -43,6 +47,18 @@ public class FleetFileTypeGenerator extends GeneratorBase {
     finally {
       closeOutput();
     }
+  }
+  
+  @NotNull
+  protected String generatePackageName(String className) {
+    final var packageName = StringUtil.getPackageName(className);
+    if (myGenerateForFleet && !className.startsWith(FLEET_NAMESPACE)) {
+      if (packageName.isEmpty()) {
+        return FLEET_NAMESPACE;
+      }
+      return FLEET_NAMESPACE_PREFIX + packageName;
+    }
+    return packageName;
   }
 
   @Override

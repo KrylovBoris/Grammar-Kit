@@ -101,7 +101,7 @@ public class ParserGenerator extends GeneratorBase {
                          @NotNull String sourcePath,
                          @NotNull String outputPath,
                          @NotNull String packagePrefix) {
-    super(psiFile, sourcePath, outputPath, packagePrefix);
+    super(psiFile, sourcePath, outputPath, packagePrefix, "java");
 
     N = G.names;
 
