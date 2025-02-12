@@ -25,7 +25,7 @@ public abstract class BnfGeneratorAbstractTest extends BnfGeneratorTestCase {
   protected List<GeneratorBase> newTestGenerator() {
     var list = new ArrayList<GeneratorBase>();
     var bnfFile = (BnfFile)myFile;
-   list.add((new ParserGenerator(bnfFile, "", myFullDataPath, "") {
+    list.add((new ParserGenerator(bnfFile, "", myFullDataPath, "") {
       @Override
       protected PrintWriter openOutputInner(String className, File file) throws IOException {
         String grammarName = FileUtil.getNameWithoutExtension(this.myFile.getName());
@@ -39,7 +39,7 @@ public abstract class BnfGeneratorAbstractTest extends BnfGeneratorTestCase {
         return out;
       }
     }));
-   return list;
+    return list;
   }
 
   @Override
