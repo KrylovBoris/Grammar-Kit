@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.intellij.grammar.generator.ParserGeneratorUtil.getWrapperParserMetaMethodName;
 
 /**
  * @author Daniil Ovchinnikov
@@ -26,7 +25,7 @@ public final class NodeCalls {
   interface NodeCall {
 
     @NotNull
-    String render(@NotNull Names names);
+    String render(@NotNull Renderer renderer, @NotNull Names names);
   }
 
   @FunctionalInterface
@@ -37,7 +36,7 @@ public final class NodeCalls {
     }
 
     @NotNull
-    String render();
+    String render(@NotNull Renderer renderer);
   }
 
   static class ConsumeTokenCall implements NodeCall {
@@ -51,7 +50,7 @@ public final class NodeCalls {
     }
 
     @Override
-    public @NotNull String render(@NotNull Names names) {
+    public @NotNull String render(@NotNull Renderer renderer, @NotNull Names names) {
       return String.format("%s(%s, %s)", consumeType.getMethodName(), names.builder, token);
     }
   }
@@ -67,7 +66,7 @@ public final class NodeCalls {
     }
 
     @Override
-    public @NotNull String render(@NotNull Names names) {
+    public @NotNull String render(@NotNull Renderer renderer, @NotNull Names names) {
       return String.format("%s(%s, %s)", consumeType.getMethodName(), names.builder, tokenSetName);
     }
   }
@@ -85,7 +84,7 @@ public final class NodeCalls {
     }
 
     @Override
-    public @NotNull String render(@NotNull Names names) {
+    public @NotNull String render(@NotNull Renderer renderer, @NotNull Names names) {
       return String.format("%s(%s, %d, %s)", methodName, names.builder, pin, StringUtil.join(tokens, ", "));
     }
   }
@@ -101,7 +100,7 @@ public final class NodeCalls {
     }
 
     @Override
-    public @NotNull String render(@NotNull Names names) {
+    public @NotNull String render(@NotNull Renderer renderer, @NotNull Names names) {
       return String.format("%s(%s, %s + 1, %d)", methodName, names.builder, names.level, priority);
     }
   }
@@ -144,16 +143,16 @@ public final class NodeCalls {
       return true;
     }
 
-    private @NotNull String getMethodRef() {
-      String ref = getWrapperParserMetaMethodName(call.methodName);
+    private @NotNull String getMethodRef(@NotNull Renderer renderer) {
+      String ref = renderer.getWrapperParserMetaMethodName(call.methodName);
       String className = call.getTargetClassName();
       return className == null ? ref : String.format("%s.%s", className, ref);
     }
 
     @Override
-    public @NotNull String render() {
-      String arguments = String.join(", ", ContainerUtil.map(call.arguments, NodeArgument::render));
-      return String.format("%s(%s)", getMethodRef(), arguments);
+    public @NotNull String render(@NotNull Renderer renderer) {
+      String arguments = String.join(", ", ContainerUtil.map(call.arguments, argument -> argument.render(renderer)));
+      return String.format("%s(%s)", getMethodRef(renderer), arguments);
     }
   }
 
@@ -166,7 +165,7 @@ public final class NodeCalls {
     }
 
     @Override
-    public @NotNull String render(@NotNull Names names) {
+    public @NotNull String render(@NotNull Renderer renderer, @NotNull Names names) {
       return String.format("%s.parse(%s, %s)", metaParameterName, names.builder, names.level);
     }
   }
@@ -194,7 +193,7 @@ public final class NodeCalls {
     }
 
     @Override
-    public @NotNull String render(@NotNull Names names) {
+    public @NotNull String render(@NotNull Renderer renderer, @NotNull Names names) {
       if (renderClass) {
         return String.format("%s.%s(%s, %s + 1)", className, methodName, names.builder, names.level);
       }
@@ -219,15 +218,14 @@ public final class NodeCalls {
     }
 
     @Override
-    public @NotNull String render(@NotNull Names names) {
+    public @NotNull String render(@NotNull Renderer renderer, @NotNull Names names) {
       String argumentStr = arguments.stream()
-        .map(NodeArgument::render)
+        .map(argument -> argument.render(renderer))
         .map(it -> ", " + it)
         .collect(Collectors.joining());
       return String.format("%s(%s, %s + 1%s)", getMethodRef(), names.builder, names.level, argumentStr);
     }
   }
-
 
   static class TextArgument implements NodeArgument {
 
@@ -238,7 +236,7 @@ public final class NodeCalls {
     }
 
     @Override
-    public @NotNull String render() {
+    public @NotNull String render(@NotNull Renderer renderer) {
       return text;
     }
   }

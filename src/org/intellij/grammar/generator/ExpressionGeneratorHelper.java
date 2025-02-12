@@ -19,8 +19,6 @@ import java.util.*;
 import static java.lang.String.format;
 import static org.intellij.grammar.generator.ExpressionHelper.OperatorInfo;
 import static org.intellij.grammar.generator.ExpressionHelper.OperatorType;
-import static org.intellij.grammar.generator.KotlinParserGeneratorUtil.getKtFuncName;
-import static org.intellij.grammar.generator.KotlinParserGeneratorUtil.getNextNameKt;
 import static org.intellij.grammar.generator.ParserGeneratorUtil.*;
 
 /**
@@ -30,32 +28,36 @@ public class ExpressionGeneratorHelper {
 
   private static final ConsumeType CONSUME_TYPE_OVERRIDE = ConsumeType.SMART;
 
-  private static @NotNull Map<String, List<OperatorInfo>> buildCallMap(ExpressionHelper.ExpressionInfo info, ParserGenerator g) {
+  private static @NotNull Map<String, List<OperatorInfo>> buildCallMap(ExpressionHelper.ExpressionInfo info,
+                                                                       ParserGenerator g,
+                                                                       @NotNull Renderer R) {
     Map<String, List<OperatorInfo>> opCalls = new LinkedHashMap<>();
     for (BnfRule rule : info.priorityMap.keySet()) {
       OperatorInfo operator = info.operatorMap.get(rule);
       String opCall = g.generateNodeCall(
-        info.rootRule, operator.operator, getNextName(getFuncName(operator.rule), 0), CONSUME_TYPE_OVERRIDE
-      ).render(g.N);
+        info.rootRule, operator.operator, R.getNextName(R.getFuncName(operator.rule), 0), CONSUME_TYPE_OVERRIDE
+      ).render(R, g.N);
       opCalls.computeIfAbsent(opCall, k -> new ArrayList<>(2)).add(operator);
     }
     return opCalls;
   }
 
-  private static @NotNull Map<String, List<OperatorInfo>> buildCallMap(ExpressionHelper.ExpressionInfo info, KotlinParserGenerator g) {
+  private static @NotNull Map<String, List<OperatorInfo>> buildCallMap(ExpressionHelper.ExpressionInfo info,
+                                                                       KotlinParserGenerator g,
+                                                                       @NotNull Renderer R) {
     Map<String, List<OperatorInfo>> opCalls = new LinkedHashMap<>();
     for (BnfRule rule : info.priorityMap.keySet()) {
       OperatorInfo operator = info.operatorMap.get(rule);
       String opCall = g.generateNodeCall(
-        info.rootRule, operator.operator, getNextNameKt(getKtFuncName(operator.rule), 0), CONSUME_TYPE_OVERRIDE
-      ).render(g.N);
+        info.rootRule, operator.operator, R.getNextName(R.getFuncName(operator.rule), 0), CONSUME_TYPE_OVERRIDE
+      ).render(R, g.N);
       opCalls.computeIfAbsent(opCall, k -> new ArrayList<>(2)).add(operator);
     }
     return opCalls;
   }
 
-  public static void generateExpressionRoot(ExpressionHelper.ExpressionInfo info, ParserGenerator g) {
-    Map<String, List<OperatorInfo>> opCalls = buildCallMap(info, g);
+  public static void generateExpressionRoot(ExpressionHelper.ExpressionInfo info, ParserGenerator g, @NotNull Renderer R) {
+    Map<String, List<OperatorInfo>> opCalls = buildCallMap(info, g, R);
     Set<String> sortedOpCalls = opCalls.keySet();
 
     for (String s : info.toString().split("\n")) {
@@ -63,9 +65,9 @@ public class ExpressionGeneratorHelper {
     }
 
     // main entry
-    String methodName = getFuncName(info.rootRule);
-    String kernelMethodName = getNextName(methodName, 0);
-    String frameName = quote(getRuleDisplayName(info.rootRule, true));
+    String methodName = R.getFuncName(info.rootRule);
+    String kernelMethodName = R.getNextName(methodName, 0);
+    String frameName = quote(R.getRuleDisplayName(info.rootRule, true));
     String shortPB = g.shorten(g.C.PsiBuilderClass);
     String shortMarker = !g.G.generateFQN ? "Marker" : g.C.PsiBuilderClass + ".Marker";
     g.out("public static boolean %s(%s %s, int %s, int %s) {", methodName, shortPB, g.N.builder, g.N.level, g.N.priority);
@@ -86,7 +88,7 @@ public class ExpressionGeneratorHelper {
       if (operators.size() > 1) {
         g.addWarning("only first definition will be used for '" + operator.operator.getText() + "': " + operators);
       }
-      String nodeCall = g.generateNodeCall(operator.rule, null, operator.rule.getName()).render(g.N);
+      String nodeCall = g.generateNodeCall(operator.rule, null, operator.rule.getName()).render(R, g.N);
       g.out("%s%s = %s;", first ? "" : format("if (!%s) ", g.N.result), g.N.result, nodeCall);
       first = false;
     }
@@ -126,8 +128,8 @@ public class ExpressionGeneratorHelper {
       String elementType = g.getElementType(operator.rule);
       boolean rightAssociative = getAttribute(operator.rule, KnownAttribute.RIGHT_ASSOCIATIVE);
       String tailCall = operator.tail == null ? null : g.generateNodeCall(
-        operator.rule, operator.tail, getNextName(getFuncName(operator.rule), 1), ConsumeType.DEFAULT
-      ).render(g.N);
+        operator.rule, operator.tail, R.getNextName(R.getFuncName(operator.rule), 1), ConsumeType.DEFAULT
+      ).render(R, g.N);
       if (operator.type == OperatorType.BINARY) {
         String argCall = format("%s(%s, %s, %d)", methodName, g.N.builder, g.N.level, rightAssociative ? argPriority - 1 : argPriority);
         g.out("%s = %s;", g.N.result, tailCall == null ? argCall : format("report_error_(%s, %s)", g.N.builder, argCall));
@@ -175,7 +177,7 @@ public class ExpressionGeneratorHelper {
         if (operator.type == OperatorType.ATOM) {
           if (Rule.isExternal(operator.rule)) continue;
           g.newLine();
-          g.generateNode(operator.rule, operator.rule.getExpression(), getFuncName(operator.rule), visited);
+          g.generateNode(operator.rule, operator.rule.getExpression(), R.getFuncName(operator.rule), visited);
           continue;
         }
         else if (operator.type == OperatorType.PREFIX) {
@@ -189,8 +191,8 @@ public class ExpressionGeneratorHelper {
 
           String elementType = g.getElementType(operator.rule);
           String tailCall = operator.tail == null ? null : g.generateNodeCall(
-            operator.rule, operator.tail, getNextName(getFuncName(operator.rule), 1), ConsumeType.DEFAULT
-          ).render(g.N);
+            operator.rule, operator.tail, R.getNextName(R.getFuncName(operator.rule), 1), ConsumeType.DEFAULT
+          ).render(R, g.N);
 
           g.out("%s = %s;", g.N.result, opCall);
           g.out("%s = %s;", g.N.pinned, g.N.result);
@@ -207,7 +209,7 @@ public class ExpressionGeneratorHelper {
           g.out("return %s || %s;", g.N.result, g.N.pinned);
           g.out("}");
         }
-        g.generateNodeChild(operator.rule, operator.operator, getFuncName(operator.rule), 0, visited);
+        g.generateNodeChild(operator.rule, operator.operator, R.getFuncName(operator.rule), 0, visited);
         if (operator.tail != null) {
           g.generateNodeChild(operator.rule, operator.tail, operator.rule.getName(), 1, visited);
         }
@@ -218,8 +220,8 @@ public class ExpressionGeneratorHelper {
   /**
    * These *must* be in a companion object.
    */
-  public static void generateExpressionRoot(ExpressionHelper.ExpressionInfo info, KotlinParserGenerator g) {
-    Map<String, List<OperatorInfo>> opCalls = buildCallMap(info, g);
+  public static void generateExpressionRoot(ExpressionHelper.ExpressionInfo info, KotlinParserGenerator g, @NotNull Renderer R) {
+    Map<String, List<OperatorInfo>> opCalls = buildCallMap(info, g, R);
     Set<String> sortedOpCalls = opCalls.keySet();
 
     for (String s : info.toString().split("\n")) {
@@ -227,9 +229,9 @@ public class ExpressionGeneratorHelper {
     }
 
     // main entry
-    String methodName = getKtFuncName(info.rootRule);
-    String kernelMethodName = getNextName(methodName, 0);
-    String frameName = quote(getRuleDisplayName(info.rootRule, true));
+    String methodName = R.getFuncName(info.rootRule);
+    String kernelMethodName = R.getNextName(methodName, 0);
+    String frameName = quote(R.getRuleDisplayName(info.rootRule, true));
     String shortPB = g.shorten(g.C.PsiBuilderClass);
     String shortMarker = !g.G.generateFQN ? "Marker" : g.C.PsiBuilderClass + ".Marker";
     g.out("fun %s(%s: %s, %s: Int, %s: Int): Boolean {", methodName, shortPB, g.N.builder, g.N.level, g.N.priority);
@@ -251,7 +253,7 @@ public class ExpressionGeneratorHelper {
       if (operators.size() > 1) {
         g.addWarning("only first definition will be used for '" + operator.operator.getText() + "': " + operators);
       }
-      String nodeCall = g.generateNodeCall(operator.rule, null, operator.rule.getName()).render(g.N);
+      String nodeCall = g.generateNodeCall(operator.rule, null, operator.rule.getName()).render(R, g.N);
       g.out("%s%s = %s", first ? "" : format("if (!%s) ", g.N.result), g.N.result, nodeCall);
       first = false;
     }
@@ -291,8 +293,8 @@ public class ExpressionGeneratorHelper {
       String elementType = g.getElementType(operator.rule);
       boolean rightAssociative = getAttribute(operator.rule, KnownAttribute.RIGHT_ASSOCIATIVE);
       String tailCall = operator.tail == null ? null : g.generateNodeCall(
-        operator.rule, operator.tail, getNextName(getKtFuncName(operator.rule), 1), ConsumeType.DEFAULT
-      ).render(g.N);
+        operator.rule, operator.tail, R.getNextName(R.getFuncName(operator.rule), 1), ConsumeType.DEFAULT
+      ).render(R, g.N);
       if (operator.type == OperatorType.BINARY) {
         String argCall = format("%s(%s, %s, %d)", methodName, g.N.builder, g.N.level, rightAssociative ? argPriority - 1 : argPriority);
         g.out("%s = %s", g.N.result, tailCall == null ? argCall : format("report_error_(%s, %s)", g.N.builder, argCall));
@@ -340,7 +342,7 @@ public class ExpressionGeneratorHelper {
         if (operator.type == OperatorType.ATOM) {
           if (Rule.isExternal(operator.rule)) continue;
           g.newLine();
-          g.generateNode(operator.rule, operator.rule.getExpression(), getKtFuncName(operator.rule), visited);
+          g.generateNode(operator.rule, operator.rule.getExpression(), R.getFuncName(operator.rule), visited);
           continue;
         }
         else if (operator.type == OperatorType.PREFIX) {
@@ -355,8 +357,8 @@ public class ExpressionGeneratorHelper {
 
           String elementType = g.getElementType(operator.rule);
           String tailCall = operator.tail == null ? null : g.generateNodeCall(
-            operator.rule, operator.tail, getNextName(getKtFuncName(operator.rule), 1), ConsumeType.DEFAULT
-          ).render(g.N);
+            operator.rule, operator.tail, R.getNextName(R.getFuncName(operator.rule), 1), ConsumeType.DEFAULT
+          ).render(R, g.N);
 
           g.out("%s = %s", g.N.result, opCall);
           g.out("%s = %s", g.N.pinned, g.N.result);
@@ -373,7 +375,7 @@ public class ExpressionGeneratorHelper {
           g.out("return %s || %s", g.N.result, g.N.pinned);
           g.out("}");
         }
-        g.generateNodeChild(operator.rule, operator.operator, getKtFuncName(operator.rule), 0, visited);
+        g.generateNodeChild(operator.rule, operator.operator, R.getFuncName(operator.rule), 0, visited);
         if (operator.tail != null) {
           g.generateNodeChild(operator.rule, operator.tail, operator.rule.getName(), 1, visited);
         }
