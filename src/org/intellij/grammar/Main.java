@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
+ * Copyright 2011-2025 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
  */
 
 package org.intellij.grammar;
@@ -9,9 +9,10 @@ import com.intellij.lang.LanguageBraceMatching;
 import com.intellij.openapi.util.text.StringUtil;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.impl.DebugUtil;
-import org.intellij.grammar.generator.ParserGenerator;
 import org.intellij.grammar.fleet.FleetBnfFileWrapper;
 import org.intellij.grammar.fleet.FleetFileTypeGenerator;
+import org.intellij.grammar.generator.Generator;
+import org.intellij.grammar.generator.OutputOpener;
 import org.intellij.grammar.psi.BnfFile;
 
 import java.io.File;
@@ -140,13 +141,13 @@ public class Main {
             count++;
 
             BnfFile bnfFile = (generateForFleet) ? FleetBnfFileWrapper.wrapBnfFile((BnfFile)psiFile) : (BnfFile)psiFile;
-            new ParserGenerator(bnfFile, grammarDir.getAbsolutePath(), output.getAbsolutePath(), "").generate();
+            Generator.JAVA_GENERATOR.generate(bnfFile, grammarDir.getAbsolutePath(), output.getAbsolutePath(), "", OutputOpener.DEFAULT);
             if (generateFileTypeElement) {
               new FleetFileTypeGenerator((BnfFile)psiFile,
                                          grammarDir.getAbsolutePath(),
                                          output.getAbsolutePath(),
                                          "",
-                                         className, debugName, languageClass).generate();
+                                         className, debugName, languageClass, OutputOpener.DEFAULT).generate();
             }
 
             System.out.println(file.getName() + " parser generated to " + output.getCanonicalPath());
