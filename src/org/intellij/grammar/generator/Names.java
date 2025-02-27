@@ -8,9 +8,9 @@ import com.intellij.openapi.application.ApplicationManager;
 import org.jetbrains.annotations.NotNull;
 
 /**
-* @author greg
-*/
-class Names {
+ * @author greg
+ */
+public class Names {
   public final String builder;
   public final String level;
   public final String marker;

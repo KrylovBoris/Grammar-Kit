@@ -7,11 +7,11 @@ package org.intellij.grammar.fleet;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiManager;
-import org.intellij.grammar.actions.GenerateAction;
+import org.intellij.grammar.actions.GenerateJavaAction;
 import org.intellij.grammar.psi.BnfFile;
 import org.jetbrains.annotations.Nullable;
 
-public class GenerateFleetAction extends GenerateAction {
+public class GenerateFleetAction extends GenerateJavaAction {
 
   @Override
   protected @Nullable PsiFile getBnfFile(VirtualFile file, PsiManager psiManager) {
