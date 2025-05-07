@@ -82,6 +82,11 @@ public class KnownAttribute<T> {
   public static final KnownAttribute<ListValue> HOOKS = create(false, ListValue.class, "hooks", EMPTY_LIST);
   public static final KnownAttribute<ListValue> TOKENS = create(true, ListValue.class, "tokens", EMPTY_LIST);
 
+  //Syntax api
+  public static final KnownAttribute<String> PSI_OUTPUT_PATH = create(true, String.class, "psiOutputPath", "");
+  public static final KnownAttribute<String> SYNTAX_ELEMENT_TYPE_HOLDER_CLASS     = create(true, String.class, "syntaxElementTypeHolderClass", "generated.GeneratedSyntaxElementTypes");
+  public static final KnownAttribute<String> ELEMENT_TYPE_CONVERTER_FACTORY_CLASS = create(true, String.class, "elementTypeConverterFactoryClass", "generated.GeneratedSyntaxElementTypeConverterFactory");
+
   private final boolean myGlobal;
   private final String myName;
   private final Class<T> myClazz;
