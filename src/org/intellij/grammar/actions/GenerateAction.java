@@ -30,10 +30,7 @@ import com.intellij.psi.PsiManager;
 import com.intellij.util.ExceptionUtil;
 import com.intellij.util.containers.JBIterable;
 import org.intellij.grammar.KnownAttribute;
-import org.intellij.grammar.generator.CommonBnfConstants;
-import org.intellij.grammar.generator.Generator;
-import org.intellij.grammar.generator.JavaParserGenerator;
-import org.intellij.grammar.generator.OutputOpener;
+import org.intellij.grammar.generator.*;
 import org.intellij.grammar.psi.BnfFile;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -45,14 +42,8 @@ import static org.intellij.grammar.actions.FileGeneratorUtil.getTargetDirectoryF
 import static org.intellij.grammar.generator.ParserGeneratorUtil.getRootAttribute;
 
 
-public abstract class GenerateActionBase extends AnAction {
-  private static final Logger LOG = Logger.getInstance(GenerateActionBase.class);
-  private final @NotNull GeneratorConstructor myGeneratorConstructor;
-
-  public GenerateActionBase(@NotNull GeneratorConstructor constructor) {
-    super();
-    myGeneratorConstructor = constructor;
-  }
+public class GenerateAction extends AnAction {
+  private static final Logger LOG = Logger.getInstance(GenerateAction.class);
 
   private static @NotNull JBIterable<VirtualFile> getFiles(@NotNull AnActionEvent e) {
     Project project = e.getProject();
@@ -93,6 +84,7 @@ public abstract class GenerateActionBase extends AnAction {
 
   public void doGenerate(@NotNull Project project, @NotNull List<VirtualFile> bnfFiles) {
     Map<VirtualFile, VirtualFile> rootMap = new LinkedHashMap<>();
+    Map<VirtualFile, VirtualFile> psiRootMap = new LinkedHashMap<>();
     Map<VirtualFile, String> packageMap = new LinkedHashMap<>();
     PsiManager psiManager = PsiManager.getInstance(project);
     PackageIndex packageIndex = PackageIndex.getInstance(project);
@@ -106,7 +98,12 @@ public abstract class GenerateActionBase extends AnAction {
           getTargetDirectoryFor(project, file,
                                 StringUtil.getShortName(parserClass) + ".java",
                                 StringUtil.getPackageName(parserClass), true);
+        String psiOutput = getRootAttribute(bnfFile, KnownAttribute.PSI_OUTPUT_PATH);
+        VirtualFile psiTarget = psiOutput.isEmpty() ?
+                                null :
+                                getTargetDirectoryFor(project, psiOutput, StringUtil.getPackageName(parserClass), true);
         rootMap.put(file, target);
+        psiRootMap.put(file, psiTarget);
         packageMap.put(target, StringUtil.notNullize(packageIndex.getPackageNameByDirectory(target)));
       }
     });
@@ -152,6 +149,15 @@ public abstract class GenerateActionBase extends AnAction {
             if (target == null) return;
             targets.add(target);
             File genDir = new File(VfsUtilCore.virtualToIoFile(target).getAbsolutePath());
+            VirtualFile psiTarget = psiRootMap.get(file);
+            File psiGenDir;
+            if (psiTarget != null) {
+              psiGenDir = new File(VfsUtilCore.virtualToIoFile(psiRootMap.get(file)).getAbsolutePath());
+              targets.add(psiTarget);
+            }
+            else {
+              psiGenDir = genDir;
+            }
             String packagePrefix = packageMap.get(target);
             long time = System.currentTimeMillis();
             int filesCount = files.size();
@@ -162,16 +168,26 @@ public abstract class GenerateActionBase extends AnAction {
                 PsiFile bnfFile = getBnfFile(file, psiManager);
                 if (!(bnfFile instanceof BnfFile)) return;
                 try {
-                  myGeneratorConstructor.create(
-                    (BnfFile)bnfFile,
-                    sourcePath,
-                    genDir.getPath(),
-                    packagePrefix,
-                    ((className, fileToOpen, myBnfFile) -> {
-                      files.add(fileToOpen);
-                      return OutputOpener.DEFAULT.openOutput(className, fileToOpen, myBnfFile);
-                    })
-                  ).generate();
+                  if (GenOptions.UseSyntaxApi(getRootAttribute(bnfFile, KnownAttribute.GENERATE).asMap())){
+                    new KotlinParserGenerator((BnfFile)bnfFile,
+                                              sourcePath,
+                                              genDir.getPath(),
+                                              packagePrefix,
+                                              ((className, fileToOpen, myBnfFile) -> {
+                                                files.add(fileToOpen);
+                                                return OutputOpener.DEFAULT.openOutput(className, fileToOpen, myBnfFile);
+                                              })).generate();
+                  }
+                  else {
+                    new JavaParserGenerator((BnfFile)bnfFile,
+                                              sourcePath,
+                                              genDir.getPath(),
+                                              packagePrefix,
+                                              ((className, fileToOpen, myBnfFile) -> {
+                                                files.add(fileToOpen);
+                                                return OutputOpener.DEFAULT.openOutput(className, fileToOpen, myBnfFile);
+                                              })).generate();
+                  }
                 }
                 catch (Exception ex) {
                   exRef.set(ex);
